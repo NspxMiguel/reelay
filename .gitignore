@@ -16,3 +16,6 @@ dist/
 .reelay/
 saida/
 out/
+
+# config local do harness
+.claude/
