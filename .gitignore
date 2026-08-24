@@ -1,0 +1,18 @@
+# Notas de trabalho — só nossas, não vão pro GitHub
+PEDIDOS.md
+CONTRATO.md
+IDEIAS.md
+REVISAO*.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Saída da própria ferramenta
+.reelay/
+saida/
+out/
