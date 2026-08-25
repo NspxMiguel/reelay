@@ -71,8 +71,40 @@ presented as fact.
 | `--cookies BROWSER` | — | `chrome`, `safari`, `firefox` — for login walls |
 | `--max-minutes` | `180` | refuse anything longer |
 | `--keep-video` / `--keep-audio` | — | keep the intermediate files |
+| `--describe` | — | have a free vision model summarise the contact sheet |
+| `--look IMAGE` | — | describe any image — no video involved |
+| `--vision-model` | `gemini-3.5-flash-lite` | model used by `--describe` and `--look` |
 | `--json` | — | print `reelay.json` to stdout |
 | `-o, --out` | `~/.reelay/<video>` | output directory |
+
+## The cheap-eyes layer
+
+Frames cost an agent context. Measured on a 59-second reel with 9 frames:
+
+| What the agent reads | Tokens |
+| --- | ---: |
+| the 9 frames, one image at a time | ~6200 |
+| the contact sheet — one image | ~690 |
+| `--describe` — the sheet, summarised into text | ~230 |
+
+```bash
+reelay "<url>" --describe
+```
+
+A free vision model reads the sheet and writes what it saw into the report, so
+the agent reads text instead of an image. The description is a summary and
+loses detail, so it is opt-in and the frames stay on disk — a question that
+turns on small on-screen text still wants the agent looking directly.
+
+The same eyes work on anything, which is the more useful half:
+
+```bash
+reelay --look screenshot.png -p "Which button is disabled, and why might it be?"
+reelay --look chart.jpg     -p "Read the axis labels and the peak value."
+```
+
+That path never touches a video. It is a general "look at this and tell me"
+for any project — a UI screenshot, a chart, a scanned page, a simulator capture.
 
 ## Transcription key
 
@@ -80,6 +112,11 @@ Whisper runs on Groq. Reelay reads `GROQ_API_KEY` from the environment, and
 falls back to the macOS keychain via `claude-autonomous run` when that is
 installed. Without a key, frames still work and Reelay falls back to
 auto-captions where the platform offers them.
+
+`--describe` and `--look` use Gemini's free tier and read `GEMINI_API_KEY` the
+same way. Both keys are optional and independent: no Groq key costs you the
+audio, no Gemini key costs you the description, and neither costs you the
+frames. `reelay --doctor` reports which of them it can see.
 
 ## Language
 

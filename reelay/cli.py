@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import __version__, i18n, media, report, transcribe
+from . import __version__, i18n, media, report, transcribe, vision
 from .i18n import t
 from .util import ReelayError, ensure_dir, run, say, slugify, which
 
@@ -40,6 +40,13 @@ def doctor(quiet: bool = False) -> int:
     else:
         print(t("dep_missing", name="GROQ_API_KEY",
                 fix="export GROQ_API_KEY=… (--no-audio works without it)"))
+
+    seeing = vision.api_key()
+    if seeing:
+        print(t("dep_ok", name="GEMINI_API_KEY", version=f"{seeing[:4]}… ({len(seeing)} chars)"))
+    else:
+        print(t("dep_missing", name="GEMINI_API_KEY",
+                fix="export GEMINI_API_KEY=… (only --describe and --look need it)"))
 
     print(t("doctor_ok") if not problems else t("doctor_fail", n=problems))
     return 1 if problems else 0
@@ -99,8 +106,25 @@ def watch(args: argparse.Namespace) -> int:
     if not args.keep_video:
         video.unlink(missing_ok=True)
 
+    # Um modelo de visao gratuito le a folha e escreve o que viu. O agente passa a
+    # ler ~110 tokens de texto em vez de ~1100 tokens de imagem, e o gasto sai da
+    # cota do Google em vez da dele.
+    described = None
+    if args.describe and sheet:
+        key = vision.api_key()
+        if not key:
+            say(t("describe_skipped", why=t("no_vision_key")), quiet=quiet)
+        else:
+            say(t("describing", model=args.vision_model), quiet=quiet)
+            try:
+                text = vision.describe_sheet(sheet, len(frames), key, args.vision_model)
+                described = (text, args.vision_model)
+            except ReelayError as exc:
+                # Descricao e extra: perder ela nao pode custar o resto do trabalho.
+                say(t("describe_skipped", why=str(exc)), quiet=quiet)
+
     path = report.write(dest, url=args.url, meta=meta, frames=frames,
-                        sheet=sheet, transcript=transcript)
+                        sheet=sheet, transcript=transcript, described=described)
 
     if args.json:
         print((dest / "reelay.json").read_text())
@@ -108,6 +132,19 @@ def watch(args: argparse.Namespace) -> int:
         say(t("done", secs=time.time() - started, path=dest), quiet=quiet)
         print(t("read_this"))
         print(path)
+    return 0
+
+
+def look(args: argparse.Namespace) -> int:
+    """Olhar uma imagem qualquer — util fora de video: print de tela, PDF, grafico."""
+    image = Path(args.look).expanduser()
+    if not image.exists():
+        raise ReelayError(f"{image} does not exist")
+    key = vision.api_key()
+    if not key:
+        raise ReelayError(t("describe_skipped", why=t("no_vision_key")))
+    prompt = args.prompt or "Describe this image concretely, including any text visible in it."
+    print(vision.describe(image, prompt, key, args.vision_model))
     return 0
 
 
@@ -120,6 +157,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"reelay {__version__}")
     parser.add_argument("--doctor", action="store_true", help="check dependencies and exit")
     parser.add_argument("--lang", choices=sorted(i18n.STRINGS), help="set interface language and exit")
+    parser.add_argument("--look", metavar="IMAGE",
+                        help="describe any image with a free vision model and exit — no video involved")
+    parser.add_argument("-p", "--prompt", help="question to ask about the image (with --look)")
 
     parser.add_argument("-o", "--out", help="output directory (default: ~/.reelay/<video>)")
     parser.add_argument("-n", "--frames", type=int, default=12, help="how many frames to extract (default: 12)")
@@ -136,6 +176,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-minutes", type=float, default=180, help="refuse videos longer than this")
     parser.add_argument("--keep-video", action="store_true", help="keep the downloaded video file")
     parser.add_argument("--keep-audio", action="store_true", help="keep the extracted audio file")
+    parser.add_argument("--describe", action="store_true",
+                        help="have a free vision model describe the contact sheet, so the agent reads text instead of an image")
+    parser.add_argument("--vision-model", default=vision.DEFAULT_MODEL,
+                        help=f"vision model for --describe and --look (default: {vision.DEFAULT_MODEL})")
     parser.add_argument("--json", action="store_true", help="print reelay.json to stdout")
     parser.add_argument("-q", "--quiet", action="store_true", help="no progress output")
     return parser
@@ -151,6 +195,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.doctor:
         return doctor(args.quiet)
+    if args.look:
+        try:
+            return look(args)
+        except ReelayError as exc:
+            print(t("err_generic", msg=exc), file=sys.stderr)
+            return 1
     if not args.url:
         parser.print_help()
         return 2

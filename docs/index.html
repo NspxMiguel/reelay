@@ -156,6 +156,33 @@ $ <span class="a">reelay</span> "https://www.instagram.com/reel/XXXXXXXXX/"
 
 <section>
   <div class="wrap">
+    <h2>Cheap eyes</h2>
+    <p class="sub">Frames cost an agent context. So a free model can look first, and hand
+      over words instead of pixels.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>What the agent reads</th><th>Tokens</th></tr></thead>
+        <tbody>
+          <tr><td>nine frames, one image at a time</td><td>~6&nbsp;200</td></tr>
+          <tr><td>the contact sheet — one image</td><td>~690</td></tr>
+          <tr><td><code>--describe</code> — the sheet, summarised into text</td><td>~230</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:18px">Measured on a 59-second reel. The description is a
+      summary, so it loses detail — it is opt-in, and the frames stay on disk for the questions
+      that turn on small on-screen text.</p>
+    <div class="note">
+      <p><strong>The same eyes work on anything.</strong> <code>reelay --look image.png -p
+        "which button is disabled?"</code> never touches a video. It is a general
+        <em>look at this and tell me</em> for any project — a UI screenshot, a chart, a scanned
+        page, a simulator capture — running on a free tier instead of your own budget.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <h2>Where it works</h2>
     <p class="sub">Anything yt-dlp reaches — roughly 1700 sites, plus local files.</p>
     <ul class="platforms">
@@ -189,6 +216,8 @@ $ <span class="a">reelay</span> --doctor</pre>
           <tr><td><code>--cookies</code></td><td>—</td><td><code>chrome</code>, <code>safari</code>, <code>firefox</code> — for login walls</td></tr>
           <tr><td><code>--language</code></td><td>—</td><td>language hint for short clips</td></tr>
           <tr><td><code>--max-minutes</code></td><td>180</td><td>refuse anything longer</td></tr>
+          <tr><td><code>--describe</code></td><td>—</td><td>free vision model summarises the sheet into text</td></tr>
+          <tr><td><code>--look</code></td><td>—</td><td>describe any image — no video involved</td></tr>
           <tr><td><code>--lang</code></td><td>system</td><td>interface language: <code>en</code> or <code>pt</code></td></tr>
         </tbody>
       </table>

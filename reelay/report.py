@@ -17,7 +17,8 @@ def _relative(path: Path, root: Path) -> str:
 
 
 def write(dest: Path, *, url: str, meta: dict, frames: list[dict],
-          sheet: Path | None, transcript: dict | None) -> Path:
+          sheet: Path | None, transcript: dict | None,
+          described: tuple[str, str] | None = None) -> Path:
     title = meta.get("title") or "?"
     author = meta.get("uploader") or meta.get("channel") or meta.get("uploader_id") or "?"
     platform = meta.get("extractor_key") or meta.get("extractor") or "?"
@@ -53,6 +54,10 @@ def write(dest: Path, *, url: str, meta: dict, frames: list[dict],
         lines.append(f'- `{_relative(frame["path"], dest)}` — {frame["label"]}')
     lines.append("")
 
+    if described:
+        text, model = described
+        lines += [f'## {t("seen")}', "", f'_{t("seen_note", model=model)}_', "", text, ""]
+
     lines += [f'## {t("transcript")}', ""]
     if transcript and transcript.get("no_speech"):
         lines += [t("no_speech"), ""]
@@ -85,5 +90,6 @@ def write(dest: Path, *, url: str, meta: dict, frames: list[dict],
         "contact_sheet": str(sheet) if sheet else None,
         "frames": [{"time": f["time"], "label": f["label"], "path": str(f["path"])} for f in frames],
         "transcript": transcript or None,
+        "described": {"text": described[0], "model": described[1]} if described else None,
     }, indent=2, ensure_ascii=False))
     return out

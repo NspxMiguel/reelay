@@ -37,7 +37,20 @@ Useful flags:
 | `--cookies chrome` | private post, age-gated, or a login wall |
 | `--language pt` | short clip whose language Whisper may guess wrong |
 | `-o DIR` | put the output somewhere specific |
+| `--describe` | long video, or context is tight — a free vision model summarises the sheet into text |
 | `--max-minutes 240` | a long video you really do want |
+
+## Looking at any image, no video involved
+
+```bash
+reelay --look path/to/image.png -p "what you want to know"
+```
+
+A free vision model answers about any image — a UI screenshot, a chart, a
+scanned page, a simulator capture. Use it when a look is worth far less than
+the context an image costs, or when you want a second pair of eyes on a
+screenshot before you open it yourself. Its answer is a summary: treat it as a
+lead, not as proof, and open the image when the detail matters.
 
 ## Then look
 

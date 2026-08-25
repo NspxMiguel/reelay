@@ -50,6 +50,11 @@ STRINGS = {
         "hint_cookies": "That looks like a login wall. Retry with --cookies chrome (or safari/firefox).",
         "err_generic": "Reelay failed: {msg}",
         "lang_saved": "Interface language set to {lang}.",
+        "describing": "Describing the frames with {model}",
+        "describe_skipped": "Description skipped ({why})",
+        "no_vision_key": "no GEMINI_API_KEY found",
+        "seen": "What the frames show",
+        "seen_note": "Written by {model} from the contact sheet — a summary, so it loses detail. The frames are on disk when you need to look yourself.",
     },
     "pt": {
         "checking": "Conferindo dependencias",
@@ -87,6 +92,11 @@ STRINGS = {
         "hint_cookies": "Isso parece parede de login. Tente de novo com --cookies chrome (ou safari/firefox).",
         "err_generic": "O Reelay falhou: {msg}",
         "lang_saved": "Idioma da interface definido para {lang}.",
+        "describing": "Descrevendo os quadros com {model}",
+        "describe_skipped": "Descricao pulada ({why})",
+        "no_vision_key": "nenhuma GEMINI_API_KEY encontrada",
+        "seen": "O que os quadros mostram",
+        "seen_note": "Escrito pelo {model} a partir da folha de contato — e resumo, entao perde detalhe. Os quadros estao no disco quando voce precisar olhar voce mesmo.",
     },
 }
 
