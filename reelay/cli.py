@@ -56,7 +56,9 @@ def watch(args: argparse.Namespace) -> int:
     started = time.time()
     quiet = args.quiet
 
-    meta = media.probe_metadata(args.url, args.cookies, quiet)
+    # Arquivo local pula download e legenda: nao ha site para pedir nem para recusar.
+    source = media.local_source(args.url)
+    meta = media.local_metadata(source) if source else media.probe_metadata(args.url, args.cookies, quiet)
     seconds = meta.get("duration") or 0
     if seconds and seconds > args.max_minutes * 60:
         raise ReelayError(t("too_long", mins=seconds / 60, limit=args.max_minutes))
@@ -71,12 +73,12 @@ def watch(args: argparse.Namespace) -> int:
 
     transcript = None
     # Legenda escrita por gente e a melhor prova que existe — tentamos antes de baixar.
-    if not args.no_audio and args.transcript in ("auto", "subs"):
+    if source is None and not args.no_audio and args.transcript in ("auto", "subs"):
         transcript = transcribe.with_subtitles(args.url, dest, args.cookies, True, prefer)
         if not transcript and args.transcript == "subs":
             transcript = transcribe.with_subtitles(args.url, dest, args.cookies, False, prefer)
 
-    video = media.download(args.url, dest, args.cookies, quiet)
+    video = source or media.download(args.url, dest, args.cookies, quiet)
     duration = seconds or media.duration_of(video)
     # Instagram nao declara duracao no metadado; a medida do arquivo e a real.
     meta["duration"] = duration or None
@@ -103,7 +105,9 @@ def watch(args: argparse.Namespace) -> int:
                 if not args.keep_audio:
                     audio.unlink(missing_ok=True)
 
-    if not args.keep_video:
+    # `source` e arquivo DELE: apagar aqui seria destruir o original. So removemos
+    # o que o proprio Reelay baixou.
+    if not args.keep_video and source is None:
         video.unlink(missing_ok=True)
 
     # Um modelo de visao gratuito le a folha e escreve o que viu. O agente passa a
@@ -140,6 +144,17 @@ def look(args: argparse.Namespace) -> int:
     image = Path(args.look).expanduser()
     if not image.exists():
         raise ReelayError(f"{image} does not exist")
+
+    # O Gemini aceita video inline e descreve — mas isso manda o arquivo inteiro
+    # em base64 por um resultado pior que o pipeline normal, que ja escolhe os
+    # quadros e transcreve. Redirecionar custa menos que a surpresa.
+    import mimetypes
+    kind = mimetypes.guess_type(image.name)[0] or ""
+    if kind.startswith("video/"):
+        raise ReelayError(f"{image.name} is a video — run `reelay \"{image}\"` instead, "
+                          "which picks the frames and transcribes the audio.")
+    if not kind.startswith("image/"):
+        raise ReelayError(f"{image.name} is not an image ({kind or 'unknown type'}).")
     key = vision.api_key()
     if not key:
         raise ReelayError(t("describe_skipped", why=t("no_vision_key")))

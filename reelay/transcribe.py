@@ -7,6 +7,7 @@ import math
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -17,8 +18,14 @@ from .util import ReelayError, run, say, timestamp
 
 GROQ_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 GROQ_MODEL = "whisper-large-v3"
-# 15 min a 48 kbps mono da ~5 MB por pedaco — bem abaixo do teto de upload da API.
-CHUNK_SECONDS = 900
+# Pedaco de 15 min derrubou a chamada com HTTP 524 (timeout do gateway) num video
+# de 18,7 min: o arquivo cabia no limite de upload, mas a transcricao demorava mais
+# do que o proxy aguenta. 8 min passa com folga e custa so mais uma chamada.
+CHUNK_SECONDS = 480
+# 5xx e 429 sao transitorios por definicao; desistir na primeira e jogar fora
+# trabalho que ja foi pago.
+RETRY_STATUSES = {408, 429, 500, 502, 503, 504, 520, 522, 524}
+RETRIES = 3
 
 # Frases que o Whisper inventa sozinho quando o audio e musica ou silencio. Nao
 # sao erro de reconhecimento: sao o que o modelo emite quando nao ha fala nenhuma.
@@ -31,6 +38,10 @@ GHOST_PHRASES = {
 # Abaixo disto o "transcrito" nao cobre o video: sinal de faixa so com musica.
 GHOST_COVERAGE = 0.10
 GHOST_CHARS = 80
+# Zero letra ou numero no texto inteiro nao e fala, e pontuacao solta. O limite
+# e 1 de proposito: com 2 ou 3 a regra descartaria 'oi', 'ok', 'hi' — fala curta
+# de verdade — e perder palavra real e pior do que deixar passar um ruido.
+GHOST_MIN_ALNUM = 1
 
 
 def _normalize(text: str) -> str:
@@ -51,11 +62,18 @@ def flag_ghosts(result: dict, duration: float) -> dict:
 
     covered = sum(max(0.0, s["end"] - s["start"]) for s in segments)
     text = " ".join(s["text"] for s in segments)
+    silent = {"source": result["source"], "text": "", "segments": [], "no_speech": True}
+
+    # Sem letra nem numero nao existe fala. Em cima de um tom puro o Whisper
+    # devolveu um unico "." cobrindo o video inteiro — cobertura alta, frase
+    # nenhuma, e ainda assim aparecia no relatorio como se fosse transcricao.
+    if sum(character.isalnum() for character in text) < GHOST_MIN_ALNUM:
+        return silent
 
     # Transcricao inteira feita so de bordao conhecido: nao ha nada a perder ao
     # descartar, mesmo no caso raro de o video realmente so dizer isso.
     if len(text) < GHOST_CHARS and all(_normalize(s["text"]) in GHOST_PHRASES for s in segments):
-        return {"source": result["source"], "text": "", "segments": [], "no_speech": True}
+        return silent
 
     if covered / duration < GHOST_COVERAGE and len(text) < GHOST_CHARS:
         result["low_confidence"] = True
@@ -107,22 +125,33 @@ def _post_chunk(path: Path, key: str, language: str | None) -> dict:
     if language:
         fields["language"] = language
     body, content_type = _multipart(fields, path.name, path.read_bytes())
-    request = urllib.request.Request(
-        GROQ_URL,
-        data=body,
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": content_type,
-            # A API da Groq recusa cliente sem User-Agent com 403.
-            "User-Agent": "reelay/1.0",
-        },
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=600) as response:
-            return json.loads(response.read())
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", "replace")[:300]
-        raise ReelayError(f"Groq HTTP {exc.code}: {detail}") from exc
+
+    last = ""
+    for attempt in range(RETRIES):
+        request = urllib.request.Request(
+            GROQ_URL,
+            data=body,
+            headers={
+                "Authorization": f"Bearer {key}",
+                "Content-Type": content_type,
+                # A API da Groq recusa cliente sem User-Agent com 403.
+                "User-Agent": "reelay/1.0",
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=600) as response:
+                return json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", "replace")[:200]
+            last = f"Groq HTTP {exc.code}: {detail}"
+            if exc.code not in RETRY_STATUSES or attempt == RETRIES - 1:
+                raise ReelayError(last) from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last = f"Groq unreachable: {exc}"
+            if attempt == RETRIES - 1:
+                raise ReelayError(last) from exc
+        time.sleep(2 ** attempt * 3)
+    raise ReelayError(last or "Groq failed")
 
 
 def _split(audio: Path, duration: float, workdir: Path) -> list[tuple[Path, float]]:
@@ -145,9 +174,15 @@ def with_whisper(audio: Path, duration: float, key: str, language: str | None, q
     pieces = _split(audio, duration, workdir)
     say(t("transcribing", chunks=len(pieces)), quiet=quiet)
 
-    segments, text = [], []
+    segments, text, lost = [], [], []
     for piece, offset in pieces:
-        result = _post_chunk(piece, key, language)
+        try:
+            result = _post_chunk(piece, key, language)
+        except ReelayError as exc:
+            # Um pedaco perdido nao pode custar os outros: o que ja voltou vale, e
+            # o buraco fica declarado no relatorio em vez de virar silencio.
+            lost.append((offset, str(exc)))
+            continue
         text.append((result.get("text") or "").strip())
         for seg in result.get("segments") or []:
             segments.append({
@@ -155,14 +190,19 @@ def with_whisper(audio: Path, duration: float, key: str, language: str | None, q
                 "end": float(seg.get("end", 0)) + offset,
                 "text": (seg.get("text") or "").strip(),
             })
+    segments.sort(key=lambda seg: seg["start"])
     for piece, _ in pieces:
         if piece.parent == workdir:
             piece.unlink(missing_ok=True)
     if workdir.exists() and not any(workdir.iterdir()):
         workdir.rmdir()
 
+    if lost and not segments:
+        raise ReelayError(lost[0][1])
     result = {"source": f"whisper ({GROQ_MODEL})",
               "text": " ".join(t for t in text if t), "segments": segments}
+    if lost:
+        result["gaps"] = [{"from": offset, "why": why} for offset, why in lost]
     return flag_ghosts(result, duration)
 
 

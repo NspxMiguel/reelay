@@ -13,7 +13,12 @@ reelay "https://www.instagram.com/reel/XXXXXXXXX/"
 
 Anything [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports works — YouTube,
 Instagram, TikTok, Pinterest, X/Twitter, Reddit, Facebook, Twitch, Loom, Vimeo,
-and roughly 1700 more sites.
+and roughly 1700 more sites. A path to a local video file works too, and is
+never deleted:
+
+```bash
+reelay ~/Movies/demo.mov -n 20
+```
 
 ## Install
 
@@ -72,7 +77,7 @@ presented as fact.
 | `--max-minutes` | `180` | refuse anything longer |
 | `--keep-video` / `--keep-audio` | — | keep the intermediate files |
 | `--describe` | — | have a free vision model summarise the contact sheet |
-| `--look IMAGE` | — | describe any image — no video involved |
+| `--look IMAGE` | — | describe any image — no video involved (images only; a video path is redirected to the normal pipeline) |
 | `--vision-model` | `gemini-3.5-flash-lite` | model used by `--describe` and `--look` |
 | `--json` | — | print `reelay.json` to stdout |
 | `-o, --out` | `~/.reelay/<video>` | output directory |
@@ -135,6 +140,9 @@ REELAY_LANG=en reelay …   # override once
 - **TikTok's main extractor is broken upstream.** Reelay falls back to TikTok's
   embed player automatically, which downloads the video but returns no title or
   duration.
+- Audio longer than 8 minutes is transcribed in chunks. A chunk that fails after
+  three retries is skipped rather than losing the whole transcript, and the
+  report says which part of the timeline is missing.
 - Timestamps are burned into the contact sheet only when `ffmpeg` was built with
   `drawtext`. Homebrew's current build is not, so the grid legend in the report
   carries the times instead.

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from .i18n import LANG, t
-from .util import human_duration
+from .util import human_duration, timestamp
 
 
 def _relative(path: Path, root: Path) -> str:
@@ -62,10 +62,13 @@ def write(dest: Path, *, url: str, meta: dict, frames: list[dict],
     if transcript and transcript.get("no_speech"):
         lines += [t("no_speech"), ""]
     elif transcript and transcript.get("segments"):
+        if transcript.get("gaps"):
+            gaps = transcript["gaps"]
+            when = ", ".join(timestamp(g["from"]) for g in gaps)
+            lines += [f'> {t("gaps", n=len(gaps), times=when)}', ""]
         if transcript.get("low_confidence"):
             lines += [f'> {t("low_confidence")}', ""]
         lines += [f'_{transcript["source"]}_', "", "```"]
-        from .util import timestamp
         lines += [f'[{timestamp(s["start"])}] {s["text"]}'
                   for s in transcript["segments"] if s["text"]]
         lines += ["```", ""]

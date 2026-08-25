@@ -63,6 +63,38 @@ def tiktok_embed(url: str) -> str | None:
     return f"https://www.tiktok.com/embed/v2/{match.group(1)}" if match else None
 
 
+def local_source(target: str) -> Path | None:
+    """Arquivo no disco em vez de URL. Devolve o caminho, ou None se for URL."""
+    if target.startswith("file://"):
+        from urllib.parse import unquote, urlparse
+        target = unquote(urlparse(target).path)
+    elif "://" in target:
+        return None
+    path = Path(target).expanduser()
+    return path if path.is_file() else None
+
+
+def local_metadata(path: Path) -> dict:
+    """Metadado de arquivo local: o que o ffprobe sabe, e nada inventado."""
+    proc = run(["ffprobe", "-v", "error", "-show_entries",
+                "format=duration:format_tags=title,artist", "-of", "json", str(path)],
+               check=False)
+    tags, duration = {}, None
+    try:
+        fmt = json.loads(proc.stdout or "{}").get("format", {})
+        tags = fmt.get("tags") or {}
+        duration = float(fmt.get("duration")) if fmt.get("duration") else None
+    except Exception:
+        pass
+    return {
+        "title": tags.get("title") or path.stem,
+        "uploader": tags.get("artist"),
+        "extractor_key": "local file",
+        "duration": duration,
+        "webpage_url": str(path),
+    }
+
+
 def probe_metadata(url: str, cookies: str | None, quiet: bool) -> dict:
     """So os metadados — nao baixa midia nenhuma."""
     say(t("fetching"), quiet=quiet)
