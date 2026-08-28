@@ -1,15 +1,40 @@
+<div align="center">
+
 # Reelay
 
 **Let an AI agent see and hear any online video.**
 
 An agent cannot open a video. Reelay turns one into the two things an agent
-already reads: a **contact sheet** of frames, and a **timestamped transcript**.
-Both land in one folder with a report file to point the agent at.
+already reads: a contact sheet of the frames that matter, and a timestamped
+transcript. Both land in one folder with a report file to point the agent at.
+
+[![Sources](https://img.shields.io/badge/sources-~1700_sites_via_yt--dlp-0a84ff)](#install)
+[![Transcript](https://img.shields.io/badge/transcript-subtitles_or_Whisper-black)](#transcription-key)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](#install)
+[![Skill](https://img.shields.io/badge/Claude_Code-skill_included-8a63d2)](#install)
+[![License](https://img.shields.io/github/license/NspxMiguel/reelay?color=lightgrey)](LICENSE)
+
+</div>
+
+---
 
 ```bash
 reelay "https://www.instagram.com/reel/XXXXXXXXX/"
 # → /Users/you/.reelay/instagram-XXXXXXXXX/READ.md
 ```
+
+## What the agent gets
+
+One image instead of a folder of frames. Frames are picked by scene change and
+topped up at even intervals, so a static shot is still covered and a fast cut is
+not missed:
+
+<img src="docs/example-sheet.jpg" alt="Contact sheet of twelve frames selected from a video, three rows of four" width="820">
+
+<sub>Sheet produced by Reelay from *Big Buck Bunny* (Blender Foundation, CC BY 3.0).</sub>
+
+Next to it, `READ.md` holds the metadata, the timestamped transcript and the
+path to the sheet — one file to hand the agent.
 
 Anything [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports works — YouTube,
 Instagram, TikTok, Pinterest, X/Twitter, Reddit, Facebook, Twitch, Loom, Vimeo,
@@ -32,8 +57,14 @@ Code skill into `~/.claude/skills/reelay/`.
 
 Check the setup:
 
-```bash
-reelay --doctor
+```console
+$ reelay --doctor
+  Checking dependencies
+yt-dlp: 2026.08.19
+ffmpeg: ffmpeg version 9.0.1
+ffprobe: ffprobe version 9.0.1
+GROQ_API_KEY: gsk_… (56 chars)
+Everything Reelay needs is present.
 ```
 
 ## How it works
@@ -146,6 +177,12 @@ REELAY_LANG=en reelay …   # override once
 - Timestamps are burned into the contact sheet only when `ffmpeg` was built with
   `drawtext`. Homebrew's current build is not, so the grid legend in the report
   carries the times instead.
+
+## Links
+
+- Project page: <https://www.nspx.dev/reelay/>
+- Why a contact sheet and not a frame dump:
+  <https://www.nspx.dev/artigos/video-contact-sheets.html>
 
 ## License
 
