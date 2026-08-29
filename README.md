@@ -171,6 +171,11 @@ REELAY_LANG=en reelay …   # override once
 - **TikTok's main extractor is broken upstream.** Reelay falls back to TikTok's
   embed player automatically, which downloads the video but returns no title or
   duration.
+- A local path that does not exist gets a real diagnosis, not a silent fall
+  through to yt-dlp. On macOS, a screen recording's default filename carries a
+  narrow no-break space (U+202F) before AM/PM — invisible in any editor, so a
+  retyped name never matches. Reelay checks the same folder for a name that
+  matches once whitespace is normalized and prints the exact command to run.
 - Audio longer than 8 minutes is transcribed in chunks. A chunk that fails after
   three retries is skipped rather than losing the whole transcript, and the
   report says which part of the timeline is missing.

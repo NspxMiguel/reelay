@@ -63,6 +63,39 @@ def tiktok_embed(url: str) -> str | None:
     return f"https://www.tiktok.com/embed/v2/{match.group(1)}" if match else None
 
 
+# Extensoes que provam que a pessoa quis dizer arquivo, nao dominio. "youtube.com"
+# nao tem ponto-extensao de video; "gravacao.mp4" tem. E o que evita confundir
+# um host sem esquema com um caminho local que so nao bateu por engano.
+VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v",
+                    ".mts", ".m2ts", ".ts", ".flv", ".wmv", ".3gp", ".gif"}
+
+
+def _looks_like_path(target: str, path: Path) -> bool:
+    # So sintaxe de caminho inequivoca (barra/til na frente), ou extensao de
+    # video. "dominio.com/watch?v=x" tem barra no meio mas nao e caminho — sem
+    # essa distincao, URL sem esquema virava "arquivo nao encontrado".
+    return path.suffix.lower() in VIDEO_EXTENSIONS or target.startswith(("/", "~/", "./", "../"))
+
+
+def _suggest(path: Path) -> Path | None:
+    """Procura na mesma pasta um nome que so difere em espaco em branco.
+
+    Existe por causa de um caso real: o macOS nomeia gravacao de tela com
+    ESPACO ESTREITO SEM QUEBRA (U+202F) antes de "AM"/"PM" — invisivel em
+    qualquer editor, mas byte diferente de um espaco normal. Um agente (ou uma
+    pessoa) que digita o nome de novo digita espaco comum, o caminho literal
+    nunca bate, e a mensagem generica de "nao encontrado" nao dá pista nenhuma
+    do motivo — foi exatamente o que aconteceu numa sessao separada, que
+    concluiu (errado) que o Reelay so aceita URL.
+    """
+    if not path.parent.is_dir():
+        return None
+    alvo = re.sub(r"\s+", " ", path.name).casefold()
+    candidatos = [f for f in path.parent.iterdir()
+                  if re.sub(r"\s+", " ", f.name).casefold() == alvo and f.is_file()]
+    return candidatos[0] if len(candidatos) == 1 else None
+
+
 def local_source(target: str) -> Path | None:
     """Arquivo no disco em vez de URL. Devolve o caminho, ou None se for URL."""
     if target.startswith("file://"):
@@ -71,7 +104,21 @@ def local_source(target: str) -> Path | None:
     elif "://" in target:
         return None
     path = Path(target).expanduser()
-    return path if path.is_file() else None
+    if path.is_file():
+        return path
+    if not _looks_like_path(target, path):
+        return None  # nao parece caminho nenhum — deixa yt-dlp tentar como URL
+
+    sugestao = _suggest(path)
+    if sugestao:
+        raise ReelayError(
+            f"{path} was not found, but {sugestao.name!r} in the same folder matches "
+            "once whitespace is normalized — the filename likely has an invisible "
+            "character (macOS screen recordings put U+202F before AM/PM). Copy the "
+            f"exact name with `ls -b {path.parent}`, or run:\n"
+            f'  reelay "{sugestao}"'
+        )
+    raise ReelayError(f"{path} does not exist.")
 
 
 def local_metadata(path: Path) -> dict:
