@@ -81,9 +81,9 @@ def flag_ghosts(result: dict, duration: float) -> dict:
 
 
 def groq_key() -> str | None:
-    """Env primeiro; depois o chaveiro do macOS, via claude-autonomous.
+    """Env first, then the macOS keychain (service claude-autonomous:GROQ_API_KEY).
 
-    A chave nunca e impressa nem gravada em disco — so entra no processo.
+    The key is never printed nor written to disk — it only enters the process.
     """
     key = os.environ.get("GROQ_API_KEY")
     if key:
@@ -92,8 +92,8 @@ def groq_key() -> str | None:
         return None
     try:
         proc = subprocess.run(
-            ["claude-autonomous", "run", "GROQ_API_KEY", "--",
-             "sh", "-c", 'printf %s "$GROQ_API_KEY"'],
+            ["security", "find-generic-password",
+             "-s", "claude-autonomous:GROQ_API_KEY", "-w"],
             capture_output=True, text=True, timeout=20, stdin=subprocess.DEVNULL,
         )
     except Exception:

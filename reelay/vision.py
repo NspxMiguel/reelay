@@ -46,8 +46,8 @@ def api_key() -> str | None:
         return None
     try:
         proc = subprocess.run(
-            ["claude-autonomous", "run", "GEMINI_API_KEY", "--",
-             "sh", "-c", 'printf %s "$GEMINI_API_KEY"'],
+            ["security", "find-generic-password",
+             "-s", "claude-autonomous:GEMINI_API_KEY", "-w"],
             capture_output=True, text=True, timeout=20, stdin=subprocess.DEVNULL,
         )
     except Exception:

@@ -145,8 +145,9 @@ for any project — a UI screenshot, a chart, a scanned page, a simulator captur
 ## Transcription key
 
 Whisper runs on Groq. Reelay reads `GROQ_API_KEY` from the environment, and
-falls back to the macOS keychain via `claude-autonomous run` when that is
-installed. Without a key, frames still work and Reelay falls back to
+falls back to the macOS keychain entry
+`claude-autonomous:GROQ_API_KEY` (read with `security find-generic-password`)
+when that is present. Without a key, frames still work and Reelay falls back to
 auto-captions where the platform offers them.
 
 `--describe` and `--look` use Gemini's free tier and read `GEMINI_API_KEY` the
@@ -192,3 +193,11 @@ REELAY_LANG=en reelay …   # override once
 ## License
 
 MIT
+
+---
+
+## Documentação
+
+Índice completo em [`docs/INDEX.md`](docs/INDEX.md).
+
+_Hub multi-repo: `~/Documents/Documentacao-Repos/INDEX.md` (atualizado 2026-08-31)._
