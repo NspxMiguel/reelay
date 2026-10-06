@@ -12,7 +12,17 @@ transcript. Both land in one folder with a report file to point the agent at.
 [![Transcript](https://img.shields.io/badge/transcript-subtitles_or_Whisper-black)](#transcription-key)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](#install)
 [![Skill](https://img.shields.io/badge/Claude_Code-skill_included-8a63d2)](#install)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-lightgrey)](#install)
+[![Tag](https://img.shields.io/github/v/tag/NspxMiguel/reelay?label=version)](https://github.com/NspxMiguel/reelay/tags)
 [![License](https://img.shields.io/github/license/NspxMiguel/reelay?color=lightgrey)](LICENSE)
+
+[What the agent gets](#what-the-agent-gets) ·
+[Install](#install) ·
+[How it works](#how-it-works) ·
+[Options](#options) ·
+[Cheap eyes](#the-cheap-eyes-layer) ·
+[Known limits](#known-limits) ·
+[Project page](https://www.nspx.dev/reelay/)
 
 </div>
 
@@ -96,6 +106,9 @@ presented as fact.
 
 ## Options
 
+<details>
+<summary>All flags</summary>
+
 | Flag | Default | What it does |
 | --- | --- | --- |
 | `-n, --frames` | `12` | how many frames to extract |
@@ -112,6 +125,8 @@ presented as fact.
 | `--vision-model` | `gemini-3.5-flash-lite` | model used by `--describe` and `--look` |
 | `--json` | — | print `reelay.json` to stdout |
 | `-o, --out` | `~/.reelay/<video>` | output directory |
+
+</details>
 
 ## The cheap-eyes layer
 
@@ -167,6 +182,9 @@ REELAY_LANG=en reelay …   # override once
 
 ## Known limits
 
+<details>
+<summary>Vimeo, TikTok, local paths, long audio, timestamps</summary>
+
 - **Vimeo requires a logged-in session.** `--cookies chrome` works if that
   browser is signed in; otherwise Vimeo refuses.
 - **TikTok's main extractor is broken upstream.** Reelay falls back to TikTok's
@@ -184,6 +202,8 @@ REELAY_LANG=en reelay …   # override once
   `drawtext`. Homebrew's current build is not, so the grid legend in the report
   carries the times instead.
 
+</details>
+
 ## Links
 
 - Project page: <https://www.nspx.dev/reelay/>
@@ -192,12 +212,8 @@ REELAY_LANG=en reelay …   # override once
 
 ## License
 
-MIT
+MIT, see [LICENSE](LICENSE).
 
----
+## Documentation
 
-## Documentação
-
-Índice completo em [`docs/INDEX.md`](docs/INDEX.md).
-
-_Hub multi-repo: `~/Documents/Documentacao-Repos/INDEX.md` (atualizado 2026-08-31)._
+Full index in [`docs/INDEX.md`](docs/INDEX.md).
