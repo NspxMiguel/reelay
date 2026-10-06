@@ -12,7 +12,7 @@ transcript. Both land in one folder with a report file to point the agent at.
 [![Transcript](https://img.shields.io/badge/transcript-subtitles_or_Whisper-black)](#transcription-key)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](#install)
 [![Skill](https://img.shields.io/badge/Claude_Code-skill_included-8a63d2)](#install)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-lightgrey)](#install)
+[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)](#install)
 [![Tag](https://img.shields.io/github/v/tag/NspxMiguel/reelay?label=version)](https://github.com/NspxMiguel/reelay/tags)
 [![License](https://img.shields.io/github/license/NspxMiguel/reelay?color=lightgrey)](LICENSE)
 
